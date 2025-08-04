@@ -51,6 +51,9 @@ h1 {
     border-radius: 3px;
     cursor: pointer;
     font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .layer-item:hover {
@@ -60,6 +63,35 @@ h1 {
 .layer-item.active {
     background: #007cba;
     color: white;
+}
+
+.zoom-btn {
+    background: #007cba;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: 5px;
+}
+
+.zoom-btn:hover {
+    background: #005a8a;
+}
+
+.layer-item.active .zoom-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.layer-item.active .zoom-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 #map {
