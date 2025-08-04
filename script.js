@@ -5,6 +5,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).add
 const activeLayers = new Map();
 let allLayers = [];
 let currentSort = 'name-asc';
+let activeFirst = false;
 
 // Load and display layers
 async function loadLayers() {
@@ -26,7 +27,12 @@ function displayLayers(layers) {
     list.innerHTML = '';
     
     // Sort layers based on current sort option
-    const sortedLayers = sortLayers([...layers], currentSort);
+    let sortedLayers = sortLayers([...layers], currentSort);
+    
+    // Apply "Active First" modifier if enabled
+    if (activeFirst) {
+        sortedLayers = applyActiveFirst(sortedLayers);
+    }
     
     sortedLayers.forEach(layer => {
         const item = document.createElement('div');
@@ -78,20 +84,22 @@ function sortLayers(layers, sortType) {
                 }
                 return aWorkspace.localeCompare(bWorkspace);
             });
-        case 'active':
-            return layers.sort((a, b) => {
-                const aActive = activeLayers.has(a.name);
-                const bActive = activeLayers.has(b.name);
-                if (aActive === bActive) {
-                    return a.name.localeCompare(b.name);
-                }
-                return bActive - aActive; // Active layers first
-            });
         case 'recent':
             return [...layers].reverse(); // Reverse order (assuming last added is recent)
         default:
             return layers;
     }
+}
+
+function applyActiveFirst(layers) {
+    return layers.sort((a, b) => {
+        const aActive = activeLayers.has(a.name);
+        const bActive = activeLayers.has(b.name);
+        if (aActive === bActive) {
+            return 0; // Keep original order within active/inactive groups
+        }
+        return bActive - aActive; // Active layers first
+    });
 }
 
 function toggleLayer(name, element, checkbox) {
@@ -111,8 +119,8 @@ function toggleLayer(name, element, checkbox) {
         checkbox.checked = true;
     }
     
-    // Refresh display if "Active First" sorting is selected
-    if (currentSort === 'active') {
+    // Refresh display if "Active First" toggle is enabled
+    if (activeFirst) {
         const searchTerm = document.getElementById('search-bar').value.toLowerCase();
         const filtered = allLayers.filter(layer => 
             layer.name.toLowerCase().includes(searchTerm)
@@ -169,6 +177,16 @@ document.getElementById('search-bar').oninput = (e) => {
 // Sort functionality
 document.getElementById('sort-select').onchange = (e) => {
     currentSort = e.target.value;
+    const searchTerm = document.getElementById('search-bar').value.toLowerCase();
+    const filtered = allLayers.filter(layer => 
+        layer.name.toLowerCase().includes(searchTerm)
+    );
+    displayLayers(filtered);
+};
+
+// Active First toggle functionality
+document.getElementById('active-first-toggle').onchange = (e) => {
+    activeFirst = e.target.checked;
     const searchTerm = document.getElementById('search-bar').value.toLowerCase();
     const filtered = allLayers.filter(layer => 
         layer.name.toLowerCase().includes(searchTerm)
