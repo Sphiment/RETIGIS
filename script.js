@@ -110,6 +110,15 @@ function toggleLayer(name, element, checkbox) {
         element.classList.add('active');
         checkbox.checked = true;
     }
+    
+    // Refresh display if "Active First" sorting is selected
+    if (currentSort === 'active') {
+        const searchTerm = document.getElementById('search-bar').value.toLowerCase();
+        const filtered = allLayers.filter(layer => 
+            layer.name.toLowerCase().includes(searchTerm)
+        );
+        displayLayers(filtered);
+    }
 }
 
 // Zoom to layer function
