@@ -2,10 +2,13 @@
 const map = L.map('map').setView([51.505, -0.09], 13);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(map);
 
+
+
 const activeLayers = new Map();
 let allLayers = [];
 let currentSort = 'name-asc';
 let activeFirst = false;
+let collapsedWorkspaces = new Set();
 
 // Load and display layers
 async function loadLayers() {
@@ -34,39 +37,101 @@ function displayLayers(layers) {
         sortedLayers = applyActiveFirst(sortedLayers);
     }
     
-    sortedLayers.forEach(layer => {
-        const item = document.createElement('div');
-        item.className = 'layer-item';
+    // Group layers by workspace
+    const workspaceGroups = groupByWorkspace(sortedLayers);
+    
+    // Display each workspace group
+    Object.keys(workspaceGroups).forEach(workspace => {
+        const workspaceLayers = workspaceGroups[workspace];
         
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'layer-checkbox';
-        checkbox.checked = activeLayers.has(layer.name);
-        checkbox.onchange = () => toggleLayer(layer.name, item, checkbox);
+        // Create workspace header
+        const workspaceHeader = document.createElement('div');
+        workspaceHeader.className = 'workspace-header';
+        workspaceHeader.innerHTML = `
+            <span class="workspace-toggle">▼</span>
+            <span class="workspace-name">${workspace} (${workspaceLayers.length})</span>
+        `;
         
-        const layerName = document.createElement('span');
-        layerName.textContent = layer.name;
-        layerName.className = 'layer-name';
+        // Create workspace content container
+        const workspaceContent = document.createElement('div');
+        workspaceContent.className = 'workspace-content';
         
-        const zoomBtn = document.createElement('button');
-        zoomBtn.className = 'zoom-btn';
-        zoomBtn.innerHTML = '⌖';
-        zoomBtn.title = 'Zoom to layer';
-        zoomBtn.onclick = (e) => {
-            e.stopPropagation();
-            zoomToLayer(layer.name);
-        };
-        
-        // Set active state if layer is currently active
-        if (activeLayers.has(layer.name)) {
-            item.classList.add('active');
+        // Set initial visibility based on collapsed state
+        const isCollapsed = collapsedWorkspaces.has(workspace);
+        if (isCollapsed) {
+            workspaceContent.style.display = 'none';
+            workspaceHeader.querySelector('.workspace-toggle').textContent = '▶';
         }
         
-        item.appendChild(checkbox);
-        item.appendChild(layerName);
-        item.appendChild(zoomBtn);
-        list.appendChild(item);
+        // Add layers to workspace content
+        workspaceLayers.forEach(layer => {
+            const item = document.createElement('div');
+            item.className = 'layer-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'layer-checkbox';
+            checkbox.checked = activeLayers.has(layer.name);
+            checkbox.onchange = () => toggleLayer(layer.name, item, checkbox);
+            
+            const layerName = document.createElement('span');
+            // Extract just the layer name without workspace prefix
+            const displayName = layer.name.includes(':') ? layer.name.split(':')[1] : layer.name;
+            layerName.textContent = displayName;
+            layerName.className = 'layer-name';
+            
+            const zoomBtn = document.createElement('button');
+            zoomBtn.className = 'zoom-btn';
+            zoomBtn.innerHTML = '⌖';
+            zoomBtn.title = 'Zoom to layer';
+            zoomBtn.onclick = (e) => {
+                e.stopPropagation();
+                zoomToLayer(layer.name);
+            };
+            
+            // Set active state if layer is currently active
+            if (activeLayers.has(layer.name)) {
+                item.classList.add('active');
+            }
+            
+            item.appendChild(checkbox);
+            item.appendChild(layerName);
+            item.appendChild(zoomBtn);
+            workspaceContent.appendChild(item);
+        });
+        
+        // Add toggle functionality
+        workspaceHeader.onclick = () => {
+            const toggle = workspaceHeader.querySelector('.workspace-toggle');
+            if (workspaceContent.style.display === 'none') {
+                workspaceContent.style.display = 'block';
+                toggle.textContent = '▼';
+                collapsedWorkspaces.delete(workspace);
+            } else {
+                workspaceContent.style.display = 'none';
+                toggle.textContent = '▶';
+                collapsedWorkspaces.add(workspace);
+            }
+        };
+        
+        list.appendChild(workspaceHeader);
+        list.appendChild(workspaceContent);
     });
+}
+
+function groupByWorkspace(layers) {
+    const groups = {};
+    
+    layers.forEach(layer => {
+        const workspace = layer.name.includes(':') ? layer.name.split(':')[0] : 'Default';
+        
+        if (!groups[workspace]) {
+            groups[workspace] = [];
+        }
+        groups[workspace].push(layer);
+    });
+    
+    return groups;
 }
 
 function sortLayers(layers, sortType) {
