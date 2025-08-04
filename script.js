@@ -140,15 +140,6 @@ function sortLayers(layers, sortType) {
             return layers.sort((a, b) => a.name.localeCompare(b.name));
         case 'name-desc':
             return layers.sort((a, b) => b.name.localeCompare(a.name));
-        case 'workspace':
-            return layers.sort((a, b) => {
-                const aWorkspace = a.name.includes(':') ? a.name.split(':')[0] : 'default';
-                const bWorkspace = b.name.includes(':') ? b.name.split(':')[0] : 'default';
-                if (aWorkspace === bWorkspace) {
-                    return a.name.localeCompare(b.name);
-                }
-                return aWorkspace.localeCompare(bWorkspace);
-            });
         case 'recent':
             return [...layers].reverse(); // Reverse order (assuming last added is recent)
         default:
