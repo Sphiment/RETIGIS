@@ -24,7 +24,18 @@
             </div>
             <div id="layers-list"></div>
         </div>
-        <div id="map"></div>
+        <div id="main-content">
+            <div id="map"></div>
+            <div id="attributes-panel">
+                <div id="attributes-header">
+                    <h3>Feature Attributes</h3>
+                    <button id="close-attributes">×</button>
+                </div>
+                <div id="attributes-content">
+                    <div id="no-selection">Click on a feature to view its attributes</div>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>

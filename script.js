@@ -9,6 +9,7 @@ let allLayers = [];
 let currentSort = 'name-asc';
 let activeFirst = false;
 let collapsedWorkspaces = new Set();
+let attributesVisible = false;
 
 // Load and display layers
 async function loadLayers() {
@@ -185,6 +186,97 @@ function toggleLayer(name, element, checkbox) {
     }
 }
 
+// Feature info functionality
+map.on('click', async function(e) {
+    const latlng = e.latlng;
+    const point = map.latLngToContainerPoint(latlng);
+    const size = map.getSize();
+    const bbox = map.getBounds().toBBoxString();
+    
+    // Get features from all active layers
+    for (const [layerName, layer] of activeLayers) {
+        try {
+            const url = `http://localhost:8080/geoserver/wms?` +
+                `SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&` +
+                `LAYERS=${layerName}&QUERY_LAYERS=${layerName}&` +
+                `STYLES=&BBOX=${bbox}&FEATURE_COUNT=1&` +
+                `HEIGHT=${size.y}&WIDTH=${size.x}&FORMAT=image/png&` +
+                `INFO_FORMAT=application/json&SRS=EPSG:4326&` +
+                `X=${Math.round(point.x)}&Y=${Math.round(point.y)}`;
+            
+            const response = await fetch(url, {
+                headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.features && data.features.length > 0) {
+                    showAttributes(data.features[0], layerName);
+                    return; // Show first found feature
+                }
+            }
+        } catch (error) {
+            console.error('Error getting feature info:', error);
+        }
+    }
+});
+
+function showAttributes(feature, layerName) {
+    const panel = document.getElementById('attributes-panel');
+    const content = document.getElementById('attributes-content');
+    
+    // Show the panel
+    panel.style.display = 'flex';
+    attributesVisible = true;
+    
+    // Create feature info
+    const properties = feature.properties || {};
+    const layerDisplayName = layerName.includes(':') ? layerName.split(':')[1] : layerName;
+    
+    let html = `
+        <div class="feature-info">
+            <h4>Layer: ${layerDisplayName}</h4>
+        </div>
+    `;
+    
+    if (Object.keys(properties).length > 0) {
+        html += `
+            <table class="attributes-table">
+                <thead>
+                    <tr>
+                        <th>Attribute</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        for (const [key, value] of Object.entries(properties)) {
+            html += `
+                <tr>
+                    <td>${key}</td>
+                    <td>${value !== null && value !== undefined ? value : 'N/A'}</td>
+                </tr>
+            `;
+        }
+        
+        html += `
+                </tbody>
+            </table>
+        `;
+    } else {
+        html += '<div id="no-selection">No attributes available for this feature</div>';
+    }
+    
+    content.innerHTML = html;
+}
+
+function hideAttributes() {
+    const panel = document.getElementById('attributes-panel');
+    panel.style.display = 'none';
+    attributesVisible = false;
+}
+
 // Zoom to layer function
 async function zoomToLayer(layerName) {
     try {
@@ -248,6 +340,11 @@ document.getElementById('active-first-toggle').onchange = (e) => {
         layer.name.toLowerCase().includes(searchTerm)
     );
     displayLayers(filtered);
+};
+
+// Close attributes panel
+document.getElementById('close-attributes').onclick = () => {
+    hideAttributes();
 };
 
 loadLayers();
