@@ -52,8 +52,8 @@ h1 {
     cursor: pointer;
     font-size: 12px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 8px;
 }
 
 .layer-item:hover {
@@ -63,6 +63,16 @@ h1 {
 .layer-item.active {
     background: #007cba;
     color: white;
+}
+
+.layer-checkbox {
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.layer-name {
+    flex: 1;
 }
 
 .zoom-btn {
@@ -78,7 +88,6 @@ h1 {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-left: 5px;
 }
 
 .zoom-btn:hover {

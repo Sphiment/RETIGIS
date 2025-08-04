@@ -28,9 +28,14 @@ function displayLayers(layers) {
         const item = document.createElement('div');
         item.className = 'layer-item';
         
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'layer-checkbox';
+        checkbox.onchange = () => toggleLayer(layer.name, item, checkbox);
+        
         const layerName = document.createElement('span');
         layerName.textContent = layer.name;
-        layerName.onclick = () => toggleLayer(layer.name, item);
+        layerName.className = 'layer-name';
         
         const zoomBtn = document.createElement('button');
         zoomBtn.className = 'zoom-btn';
@@ -41,17 +46,19 @@ function displayLayers(layers) {
             zoomToLayer(layer.name);
         };
         
+        item.appendChild(checkbox);
         item.appendChild(layerName);
         item.appendChild(zoomBtn);
         list.appendChild(item);
     });
 }
 
-function toggleLayer(name, element) {
+function toggleLayer(name, element, checkbox) {
     if (activeLayers.has(name)) {
         map.removeLayer(activeLayers.get(name));
         activeLayers.delete(name);
         element.classList.remove('active');
+        checkbox.checked = false;
     } else {
         const layer = L.tileLayer.wms('http://localhost:8080/geoserver/wms', {
             layers: name,
@@ -60,6 +67,7 @@ function toggleLayer(name, element) {
         }).addTo(map);
         activeLayers.set(name, layer);
         element.classList.add('active');
+        checkbox.checked = true;
     }
 }
 
@@ -93,9 +101,9 @@ async function zoomToLayer(layerName) {
             }
         }
         
-        map.setView([51.505, -0.09], 10, { animate: true, duration: 1 });
+        map.setView([51.505, -0.09], 10, { animate: true, duration: 2 });
     } catch (e) {
-        map.setView([51.505, -0.09], 10, { animate: true, duration: 1 });
+        map.setView([51.505, -0.09], 10, { animate: true, duration: 2 });
     }
 }
 
