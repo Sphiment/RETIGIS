@@ -4,6 +4,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).add
 
 const activeLayers = new Map();
 let allLayers = [];
+let currentSort = 'name-asc';
 
 // Load and display layers
 async function loadLayers() {
@@ -24,13 +25,17 @@ function displayLayers(layers) {
     const list = document.getElementById('layers-list');
     list.innerHTML = '';
     
-    layers.forEach(layer => {
+    // Sort layers based on current sort option
+    const sortedLayers = sortLayers([...layers], currentSort);
+    
+    sortedLayers.forEach(layer => {
         const item = document.createElement('div');
         item.className = 'layer-item';
         
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'layer-checkbox';
+        checkbox.checked = activeLayers.has(layer.name);
         checkbox.onchange = () => toggleLayer(layer.name, item, checkbox);
         
         const layerName = document.createElement('span');
@@ -46,11 +51,47 @@ function displayLayers(layers) {
             zoomToLayer(layer.name);
         };
         
+        // Set active state if layer is currently active
+        if (activeLayers.has(layer.name)) {
+            item.classList.add('active');
+        }
+        
         item.appendChild(checkbox);
         item.appendChild(layerName);
         item.appendChild(zoomBtn);
         list.appendChild(item);
     });
+}
+
+function sortLayers(layers, sortType) {
+    switch (sortType) {
+        case 'name-asc':
+            return layers.sort((a, b) => a.name.localeCompare(b.name));
+        case 'name-desc':
+            return layers.sort((a, b) => b.name.localeCompare(a.name));
+        case 'workspace':
+            return layers.sort((a, b) => {
+                const aWorkspace = a.name.includes(':') ? a.name.split(':')[0] : 'default';
+                const bWorkspace = b.name.includes(':') ? b.name.split(':')[0] : 'default';
+                if (aWorkspace === bWorkspace) {
+                    return a.name.localeCompare(b.name);
+                }
+                return aWorkspace.localeCompare(bWorkspace);
+            });
+        case 'active':
+            return layers.sort((a, b) => {
+                const aActive = activeLayers.has(a.name);
+                const bActive = activeLayers.has(b.name);
+                if (aActive === bActive) {
+                    return a.name.localeCompare(b.name);
+                }
+                return bActive - aActive; // Active layers first
+            });
+        case 'recent':
+            return [...layers].reverse(); // Reverse order (assuming last added is recent)
+        default:
+            return layers;
+    }
 }
 
 function toggleLayer(name, element, checkbox) {
@@ -94,7 +135,7 @@ async function zoomToLayer(layerName) {
                     
                     if (bbox?.minx !== undefined) {
                         const bounds = [[bbox.miny, bbox.minx], [bbox.maxy, bbox.maxx]];
-                        map.fitBounds(bounds, { padding: [20, 20], animate: true, duration: 1 });
+                        map.fitBounds(bounds, { padding: [20, 20], animate: true, duration: 2 });
                         return;
                     }
                 }
@@ -110,6 +151,16 @@ async function zoomToLayer(layerName) {
 // Search functionality
 document.getElementById('search-bar').oninput = (e) => {
     const searchTerm = e.target.value.toLowerCase();
+    const filtered = allLayers.filter(layer => 
+        layer.name.toLowerCase().includes(searchTerm)
+    );
+    displayLayers(filtered);
+};
+
+// Sort functionality
+document.getElementById('sort-select').onchange = (e) => {
+    currentSort = e.target.value;
+    const searchTerm = document.getElementById('search-bar').value.toLowerCase();
     const filtered = allLayers.filter(layer => 
         layer.name.toLowerCase().includes(searchTerm)
     );
