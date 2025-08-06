@@ -142,7 +142,8 @@ h1 {
     flex: 1;
 }
 
-.zoom-btn {
+.zoom-btn,
+.table-btn {
     background: #007cba;
     color: white;
     border: none;
@@ -157,11 +158,22 @@ h1 {
     flex-shrink: 0;
 }
 
-.zoom-btn:hover {
+.zoom-btn:hover,
+.table-btn:hover {
     background: #005a8a;
 }
 
-.layer-item.active .zoom-btn {
+.table-btn {
+    background: #28a745;
+    margin-left: 4px;
+}
+
+.table-btn:hover {
+    background: #1e7e34;
+}
+
+.layer-item.active .zoom-btn,
+.layer-item.active .table-btn {
     background: rgba(255, 255, 255, 0.2);
     color: white;
 }
@@ -170,24 +182,41 @@ h1 {
     background: rgba(255, 255, 255, 0.3);
 }
 
+.layer-item.active .table-btn:hover {
+    background: rgba(40, 167, 69, 0.3);
+}
+
 #map {
     flex: 1;
-    min-height: 50%;
+    min-height: 30%;
 }
 
 #main-content {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
 }
 
 #attributes-panel {
-    height: 40%;
+    height: 35%;
     background: #f9f9f9;
     border-top: 2px solid #ddd;
     display: flex;
     flex-direction: column;
     display: none;
+}
+
+#layer-attributes-panel {
+    height: 35%;
+    background: #f9f9f9;
+    border-top: 2px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    display: none;
+    min-width: 0;
+    overflow: hidden;
 }
 
 #attributes-header {
@@ -199,12 +228,23 @@ h1 {
     align-items: center;
 }
 
-#attributes-header h3 {
+#layer-attributes-header {
+    background: #e0e0e0;
+    padding: 10px 15px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#attributes-header h3,
+#layer-attributes-header h3 {
     margin: 0;
     font-size: 16px;
 }
 
-#close-attributes {
+#close-attributes,
+#close-layer-attributes {
     background: none;
     border: none;
     font-size: 18px;
@@ -218,17 +258,31 @@ h1 {
     border-radius: 3px;
 }
 
-#close-attributes:hover {
+#close-attributes:hover,
+#close-layer-attributes:hover {
     background: #ccc;
 }
 
-#attributes-content {
+#attributes-content,
+#layer-attributes-content {
     flex: 1;
     padding: 15px;
-    overflow-y: auto;
+    overflow: hidden;
+    background: #f9f9f9;
 }
 
-#no-selection {
+.layer-attributes-table-container {
+    overflow: auto;
+    max-height: calc(35vh - 80px);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    width: 100%;
+    max-width: 100%;
+}
+
+#no-selection,
+#no-layer-selection {
     color: #666;
     font-style: italic;
     text-align: center;
@@ -244,31 +298,82 @@ h1 {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+.layer-attributes-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-size: 12px;
+    table-layout: fixed;
+    min-width: 800px;
+}
+
 .attributes-table th,
-.attributes-table td {
+.attributes-table td,
+.layer-attributes-table th,
+.layer-attributes-table td {
     padding: 10px 12px;
     text-align: left;
     border-bottom: 1px solid #eee;
+    border-right: 1px solid #eee;
 }
 
-.attributes-table th {
+.layer-attributes-table th,
+.layer-attributes-table td {
+    padding: 8px 10px;
+    width: 150px;
+    min-width: 80px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-right: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+}
+
+.layer-attributes-table th:first-child,
+.layer-attributes-table td:first-child {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+}
+
+.attributes-table th,
+.layer-attributes-table th {
     background: #f5f5f5;
     font-weight: bold;
     font-size: 12px;
     text-transform: uppercase;
     color: #666;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
-.attributes-table td {
+.attributes-table td,
+.layer-attributes-table td {
     font-size: 14px;
 }
 
-.attributes-table tr:last-child td {
+.layer-attributes-table td {
+    font-size: 12px;
+}
+
+.attributes-table tr:last-child td,
+.layer-attributes-table tr:last-child td {
     border-bottom: none;
 }
 
-.attributes-table tr:hover {
+.attributes-table tr:hover,
+.layer-attributes-table tr:hover {
     background: #f9f9f9;
+}
+
+.layer-attributes-table th:last-child,
+.layer-attributes-table td:last-child {
+    border-right: none;
 }
 
 .feature-info {

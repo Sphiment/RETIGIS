@@ -10,6 +10,7 @@ let currentSort = 'name-asc';
 let activeFirst = false;
 let collapsedWorkspaces = new Set();
 let attributesVisible = false;
+let layerAttributesVisible = false;
 
 // Load and display layers
 async function loadLayers() {
@@ -90,6 +91,15 @@ function displayLayers(layers) {
                 zoomToLayer(layer.name);
             };
             
+            const tableBtn = document.createElement('button');
+            tableBtn.className = 'table-btn';
+            tableBtn.innerHTML = '⊞';
+            tableBtn.title = 'View layer attributes';
+            tableBtn.onclick = (e) => {
+                e.stopPropagation();
+                showLayerAttributes(layer.name);
+            };
+            
             // Set active state if layer is currently active
             if (activeLayers.has(layer.name)) {
                 item.classList.add('active');
@@ -98,6 +108,7 @@ function displayLayers(layers) {
             item.appendChild(checkbox);
             item.appendChild(layerName);
             item.appendChild(zoomBtn);
+            item.appendChild(tableBtn);
             workspaceContent.appendChild(item);
         });
         
@@ -277,6 +288,135 @@ function hideAttributes() {
     attributesVisible = false;
 }
 
+// Show layer attributes table
+async function showLayerAttributes(layerName) {
+    const panel = document.getElementById('layer-attributes-panel');
+    const content = document.getElementById('layer-attributes-content');
+    
+    // Show the panel
+    panel.style.display = 'flex';
+    layerAttributesVisible = true;
+    
+    // Show loading message
+    content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading layer attributes...</div>';
+    
+    try {
+        // Get all features from the layer using WFS
+        const url = `http://localhost:8080/geoserver/wfs?` +
+            `service=WFS&version=1.0.0&request=GetFeature&` +
+            `typeName=${layerName}&outputFormat=application/json&` +
+            `maxFeatures=1000`; // Limit to 1000 features for performance
+        
+        const response = await fetch(url, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            displayLayerAttributesTable(data, layerName);
+        } else {
+            content.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">Error loading layer attributes</div>';
+        }
+    } catch (error) {
+        console.error('Error fetching layer attributes:', error);
+        content.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">Error loading layer attributes</div>';
+    }
+}
+
+function displayLayerAttributesTable(data, layerName) {
+    const content = document.getElementById('layer-attributes-content');
+    const layerDisplayName = layerName.includes(':') ? layerName.split(':')[1] : layerName;
+    
+    if (!data.features || data.features.length === 0) {
+        content.innerHTML = `
+            <div class="feature-info">
+                <h4>Layer: ${layerDisplayName}</h4>
+                <p>No features found in this layer</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Get all unique attribute names from all features
+    const allAttributes = new Set();
+    data.features.forEach(feature => {
+        if (feature.properties) {
+            Object.keys(feature.properties).forEach(key => allAttributes.add(key));
+        }
+    });
+    
+    const attributeNames = Array.from(allAttributes);
+    
+    if (attributeNames.length === 0) {
+        content.innerHTML = `
+            <div class="feature-info">
+                <h4>Layer: ${layerDisplayName}</h4>
+                <p>No attributes found in this layer</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Calculate column width based on number of attributes
+    const numColumns = attributeNames.length + 1; // +1 for row number column
+    const maxTableWidth = 1200; // Maximum table width
+    const minColumnWidth = 100;
+    const rowColumnWidth = 60;
+    const availableWidth = maxTableWidth - rowColumnWidth;
+    const columnWidth = Math.max(minColumnWidth, availableWidth / attributeNames.length);
+    
+    // Create the table
+    let html = `
+        <div class="feature-info">
+            <h4>Layer: ${layerDisplayName} (${data.features.length} features)</h4>
+        </div>
+        <div class="layer-attributes-table-container">
+            <table class="layer-attributes-table" style="min-width: ${Math.min(maxTableWidth, (columnWidth * attributeNames.length) + rowColumnWidth)}px;">
+                <thead>
+                    <tr>
+                        <th style="width: ${rowColumnWidth}px; min-width: ${rowColumnWidth}px; max-width: ${rowColumnWidth}px;">Row</th>
+    `;
+    
+    // Add column headers with fixed width
+    attributeNames.forEach(attr => {
+        html += `<th style="width: ${columnWidth}px;" title="${attr}">${attr}</th>`;
+    });
+    
+    html += `
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    // Add data rows
+    data.features.forEach((feature, index) => {
+        html += `<tr>`;
+        html += `<td style="font-weight: bold; background: #f8f9fa;">${index + 1}</td>`;
+        
+        attributeNames.forEach(attr => {
+            const value = feature.properties && feature.properties[attr];
+            const displayValue = value !== null && value !== undefined ? value : 'N/A';
+            html += `<td title="${displayValue}">${displayValue}</td>`;
+        });
+        
+        html += `</tr>`;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    content.innerHTML = html;
+}
+
+function hideLayerAttributes() {
+    const panel = document.getElementById('layer-attributes-panel');
+    panel.style.display = 'none';
+    layerAttributesVisible = false;
+}
+
 // Zoom to layer function
 async function zoomToLayer(layerName) {
     try {
@@ -345,6 +485,11 @@ document.getElementById('active-first-toggle').onchange = (e) => {
 // Close attributes panel
 document.getElementById('close-attributes').onclick = () => {
     hideAttributes();
+};
+
+// Close layer attributes panel
+document.getElementById('close-layer-attributes').onclick = () => {
+    hideLayerAttributes();
 };
 
 loadLayers();
