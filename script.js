@@ -104,6 +104,15 @@ function displayLayers(layers) {
                 showLayerAttributes(layer.name);
             };
             
+            const configBtn = document.createElement('button');
+            configBtn.className = 'config-btn';
+            configBtn.innerHTML = '⚙';
+            configBtn.title = 'Configure popup attributes';
+            configBtn.onclick = (e) => {
+                e.stopPropagation();
+                showPopupConfigPanel(layer.name);
+            };
+            
             // Set active state if layer is currently active
             if (activeLayers.has(layer.name)) {
                 item.classList.add('active');
@@ -113,6 +122,7 @@ function displayLayers(layers) {
             item.appendChild(layerName);
             item.appendChild(zoomBtn);
             item.appendChild(tableBtn);
+            item.appendChild(configBtn);
             workspaceContent.appendChild(item);
         });
         
@@ -201,42 +211,350 @@ function toggleLayer(name, element, checkbox) {
     }
 }
 
-// Feature selection functionality for layer attributes panel
-map.on('click', async function(e) {
-    // Only handle feature selection if layer attributes panel is open and "Selected First" is enabled
-    if (!layerAttributesVisible || !selectedFirstEnabled || !currentLayerData || !currentLayerName) {
-        return;
-    }
-    
-    const latlng = e.latlng;
-    const point = map.latLngToContainerPoint(latlng);
-    const size = map.getSize();
-    const bbox = map.getBounds().toBBoxString();
-    
+// Popup Configuration Management
+async function getPopupConfig(layerName) {
     try {
-        const url = `http://localhost:8080/geoserver/wms?` +
-            `SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&` +
-            `LAYERS=${currentLayerName}&QUERY_LAYERS=${currentLayerName}&` +
-            `STYLES=&BBOX=${bbox}&FEATURE_COUNT=1&` +
-            `HEIGHT=${size.y}&WIDTH=${size.x}&FORMAT=image/png&` +
-            `INFO_FORMAT=application/json&SRS=EPSG:4326&` +
-            `X=${Math.round(point.x)}&Y=${Math.round(point.y)}`;
-        
-        const response = await fetch(url, {
+        const response = await fetch(`http://localhost:8080/geoserver/rest/layers/${layerName}.json`, {
             headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
         });
         
-        if (response.ok) {
-            const data = await response.json();
-            if (data.features && data.features.length > 0) {
-                const clickedFeature = data.features[0];
-                highlightFeatureInTable(clickedFeature);
+        if (!response.ok) return null;
+        
+        const layerData = await response.json();
+        const resourceResponse = await fetch(layerData.layer.resource.href, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
+        
+        if (!resourceResponse.ok) return null;
+        
+        const featureTypeData = await resourceResponse.json();
+        const dataLinks = featureTypeData.featureType.dataLinks;
+        
+        if (!dataLinks) return null;
+        
+        // Look for retigis.popup entry
+        for (const [key, value] of Object.entries(dataLinks)) {
+            if (value && value.content === 'retigis.popup') {
+                const type = value.type || '';
+                if (type.startsWith('config:')) {
+                    const attributes = type.substring(7).split(',').filter(attr => attr.trim());
+                    return attributes;
+                }
             }
         }
+        
+        return null;
     } catch (error) {
-        console.error('Error getting feature info for selection:', error);
+        console.error('Error getting popup config:', error);
+        return null;
+    }
+}
+
+async function savePopupConfig(layerName, selectedAttributes) {
+    try {
+        const response = await fetch(`http://localhost:8080/geoserver/rest/layers/${layerName}.json`, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
+        
+        if (!response.ok) return false;
+        
+        const layerData = await response.json();
+        const resourceResponse = await fetch(layerData.layer.resource.href, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
+        
+        if (!resourceResponse.ok) return false;
+        
+        const featureTypeData = await resourceResponse.json();
+        
+        // Create config string
+        const configString = `config:${selectedAttributes.join(',')}`;
+        
+        // Prepare data links - preserve existing non-popup entries
+        const existingDataLinks = featureTypeData.featureType.dataLinks || {};
+        const newDataLinks = {};
+        
+        // Copy non-popup entries
+        for (const [key, value] of Object.entries(existingDataLinks)) {
+            if (!value || value.content !== 'retigis.popup') {
+                newDataLinks[key] = value;
+            }
+        }
+        
+        // Add popup config
+        newDataLinks['org.geoserver.catalog.impl.DataLinkInfoImpl'] = {
+            type: configString,
+            content: 'retigis.popup'
+        };
+        
+        // Create minimal update payload
+        const updatePayload = {
+            featureType: {
+                name: featureTypeData.featureType.name,
+                nativeName: featureTypeData.featureType.nativeName,
+                title: featureTypeData.featureType.title,
+                enabled: featureTypeData.featureType.enabled,
+                dataLinks: newDataLinks
+            }
+        };
+        
+        const updateResponse = await fetch(layerData.layer.resource.href, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Basic ${btoa('admin:geoserver')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatePayload)
+        });
+        
+        return updateResponse.ok;
+    } catch (error) {
+        console.error('Error saving popup config:', error);
+        return false;
+    }
+}
+
+async function getLayerAttributes(layerName) {
+    try {
+        const response = await fetch(`http://localhost:8080/geoserver/rest/layers/${layerName}.json`, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
+        
+        if (!response.ok) return [];
+        
+        const layerData = await response.json();
+        const resourceResponse = await fetch(layerData.layer.resource.href, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
+        
+        if (!resourceResponse.ok) return [];
+        
+        const featureTypeData = await resourceResponse.json();
+        const attributes = featureTypeData.featureType.attributes?.attribute || [];
+        
+        return attributes
+            .filter(attr => attr.name !== 'geom') // Exclude geometry
+            .map(attr => attr.name);
+    } catch (error) {
+        console.error('Error getting layer attributes:', error);
+        return [];
+    }
+}
+
+// Feature click functionality for popups
+map.on('click', async function(e) {
+    // Handle popup display for active layers
+    const clickedLayers = [];
+    
+    // Check all active layers for features at click point
+    for (const [layerName, layer] of activeLayers.entries()) {
+        try {
+            const latlng = e.latlng;
+            const point = map.latLngToContainerPoint(latlng);
+            const size = map.getSize();
+            const bbox = map.getBounds().toBBoxString();
+            
+            const url = `http://localhost:8080/geoserver/wms?` +
+                `SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&` +
+                `LAYERS=${layerName}&QUERY_LAYERS=${layerName}&` +
+                `STYLES=&BBOX=${bbox}&FEATURE_COUNT=1&` +
+                `HEIGHT=${size.y}&WIDTH=${size.x}&FORMAT=image/png&` +
+                `INFO_FORMAT=application/json&SRS=EPSG:4326&` +
+                `X=${Math.round(point.x)}&Y=${Math.round(point.y)}`;
+            
+            const response = await fetch(url, {
+                headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.features && data.features.length > 0) {
+                    clickedLayers.push({
+                        layerName: layerName,
+                        feature: data.features[0]
+                    });
+                }
+            }
+        } catch (error) {
+            console.error(`Error getting feature info for ${layerName}:`, error);
+        }
+    }
+    
+    // Show popup if we found features
+    if (clickedLayers.length > 0) {
+        await showFeaturePopup(e.latlng, clickedLayers);
+    }
+    
+    // Handle table highlighting if attributes panel is open
+    if (layerAttributesVisible && selectedFirstEnabled && currentLayerData && currentLayerName) {
+        const matchingLayer = clickedLayers.find(cl => cl.layerName === currentLayerName);
+        if (matchingLayer) {
+            highlightFeatureInTable(matchingLayer.feature);
+        }
     }
 });
+
+async function showFeaturePopup(latlng, clickedLayers) {
+    let popupContent = '';
+    
+    for (const layerInfo of clickedLayers) {
+        const { layerName, feature } = layerInfo;
+        const displayName = layerName.includes(':') ? layerName.split(':')[1] : layerName;
+        
+        // Get popup configuration for this layer
+        const configuredAttributes = await getPopupConfig(layerName);
+        
+        popupContent += `<div style="margin-bottom: 15px;">`;
+        popupContent += `<h4 style="margin: 0 0 8px 0; color: #2c3e50; border-bottom: 1px solid #ecf0f1; padding-bottom: 4px;">${displayName}</h4>`;
+        
+        if (!feature.properties) {
+            popupContent += `<p style="margin: 0; font-style: italic; color: #7f8c8d;">No attributes available</p>`;
+        } else if (!configuredAttributes || configuredAttributes.length === 0) {
+            popupContent += `<p style="margin: 0; font-style: italic; color: #7f8c8d;">No attributes configured for popup</p>`;
+            popupContent += `<button onclick="openPopupConfig('${layerName}')" style="margin-top: 5px; padding: 3px 8px; font-size: 11px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">Configure</button>`;
+        } else {
+            // Show only configured attributes
+            let hasValidAttributes = false;
+            configuredAttributes.forEach(attrName => {
+                if (attrName in feature.properties) {
+                    const value = feature.properties[attrName];
+                    const displayValue = value !== null && value !== undefined ? value : 'N/A';
+                    popupContent += `<p style="margin: 3px 0;"><strong>${attrName}:</strong> ${displayValue}</p>`;
+                    hasValidAttributes = true;
+                }
+            });
+            
+            if (!hasValidAttributes) {
+                popupContent += `<p style="margin: 0; font-style: italic; color: #7f8c8d;">Configured attributes not found</p>`;
+            }
+            
+            popupContent += `<button onclick="openPopupConfig('${layerName}')" style="margin-top: 5px; padding: 3px 8px; font-size: 11px; background: #95a5a6; color: white; border: none; border-radius: 3px; cursor: pointer;">Edit Config</button>`;
+        }
+        
+        popupContent += `</div>`;
+    }
+    
+    // Create and show popup
+    const popup = L.popup({
+        maxWidth: 300,
+        className: 'feature-popup'
+    })
+    .setLatLng(latlng)
+    .setContent(popupContent)
+    .openOn(map);
+}
+
+// Global function to open popup configuration
+window.openPopupConfig = async function(layerName) {
+    map.closePopup(); // Close the feature popup
+    await showPopupConfigPanel(layerName);
+};
+
+async function showPopupConfigPanel(layerName) {
+    const displayName = layerName.includes(':') ? layerName.split(':')[1] : layerName;
+    
+    // Get available attributes
+    const allAttributes = await getLayerAttributes(layerName);
+    if (allAttributes.length === 0) {
+        alert('No attributes available for this layer');
+        return;
+    }
+    
+    // Get current configuration
+    const currentConfig = await getPopupConfig(layerName) || [];
+    
+    // Create configuration panel
+    const panel = document.createElement('div');
+    panel.id = 'popup-config-panel';
+    panel.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border: 2px solid #34495e;
+        border-radius: 8px;
+        padding: 20px;
+        min-width: 350px;
+        max-height: 70vh;
+        overflow-y: auto;
+        z-index: 2000;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    `;
+    
+    let html = `
+        <h3 style="margin: 0 0 15px 0; color: #2c3e50;">Configure Popup for ${displayName}</h3>
+        <p style="margin: 0 0 15px 0; color: #7f8c8d; font-size: 14px;">Select which attributes to show when clicking on features:</p>
+        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ecf0f1; border-radius: 4px; padding: 10px;">
+    `;
+    
+    allAttributes.forEach(attr => {
+        const isChecked = currentConfig.includes(attr);
+        html += `
+            <label style="display: block; margin: 5px 0; cursor: pointer;">
+                <input type="checkbox" value="${attr}" ${isChecked ? 'checked' : ''} style="margin-right: 8px;">
+                ${attr}
+            </label>
+        `;
+    });
+    
+    html += `
+        </div>
+        <div style="margin-top: 15px; text-align: right;">
+            <button id="cancel-config-btn" style="margin-right: 10px; padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+            <button id="save-config-btn" style="padding: 8px 15px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Save Configuration</button>
+        </div>
+    `;
+    
+    panel.innerHTML = html;
+    document.body.appendChild(panel);
+    
+    // Add overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'popup-config-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1999;
+    `;
+    document.body.appendChild(overlay);
+    
+    // Event handlers
+    document.getElementById('cancel-config-btn').onclick = closePopupConfigPanel;
+    overlay.onclick = closePopupConfigPanel;
+    
+    document.getElementById('save-config-btn').onclick = async () => {
+        const checkboxes = panel.querySelectorAll('input[type="checkbox"]:checked');
+        const selectedAttributes = Array.from(checkboxes).map(cb => cb.value);
+        
+        const saveBtn = document.getElementById('save-config-btn');
+        saveBtn.textContent = 'Saving...';
+        saveBtn.disabled = true;
+        
+        const success = await savePopupConfig(layerName, selectedAttributes);
+        
+        if (success) {
+            alert('Popup configuration saved successfully!');
+            closePopupConfigPanel();
+        } else {
+            alert('Error saving configuration. Please try again.');
+            saveBtn.textContent = 'Save Configuration';
+            saveBtn.disabled = false;
+        }
+    };
+}
+
+function closePopupConfigPanel() {
+    const panel = document.getElementById('popup-config-panel');
+    const overlay = document.getElementById('popup-config-overlay');
+    
+    if (panel) panel.remove();
+    if (overlay) overlay.remove();
+}
 
 function highlightFeatureInTable(feature) {
     if (!currentLayerData || !feature.properties) {
