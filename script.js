@@ -9,8 +9,10 @@ let allLayers = [];
 let currentSort = 'name-asc';
 let activeFirst = false;
 let collapsedWorkspaces = new Set();
-let attributesVisible = false;
 let layerAttributesVisible = false;
+let selectedFirstEnabled = false;
+let currentLayerData = null;
+let currentLayerName = null;
 
 // Load and display layers
 async function loadLayers() {
@@ -197,95 +199,76 @@ function toggleLayer(name, element, checkbox) {
     }
 }
 
-// Feature info functionality
+// Feature selection functionality for layer attributes panel
 map.on('click', async function(e) {
+    // Only handle feature selection if layer attributes panel is open and "Selected First" is enabled
+    if (!layerAttributesVisible || !selectedFirstEnabled || !currentLayerData || !currentLayerName) {
+        return;
+    }
+    
     const latlng = e.latlng;
     const point = map.latLngToContainerPoint(latlng);
     const size = map.getSize();
     const bbox = map.getBounds().toBBoxString();
     
-    // Get features from all active layers
-    for (const [layerName, layer] of activeLayers) {
-        try {
-            const url = `http://localhost:8080/geoserver/wms?` +
-                `SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&` +
-                `LAYERS=${layerName}&QUERY_LAYERS=${layerName}&` +
-                `STYLES=&BBOX=${bbox}&FEATURE_COUNT=1&` +
-                `HEIGHT=${size.y}&WIDTH=${size.x}&FORMAT=image/png&` +
-                `INFO_FORMAT=application/json&SRS=EPSG:4326&` +
-                `X=${Math.round(point.x)}&Y=${Math.round(point.y)}`;
-            
-            const response = await fetch(url, {
-                headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data.features && data.features.length > 0) {
-                    showAttributes(data.features[0], layerName);
-                    return; // Show first found feature
-                }
+    try {
+        const url = `http://localhost:8080/geoserver/wms?` +
+            `SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&` +
+            `LAYERS=${currentLayerName}&QUERY_LAYERS=${currentLayerName}&` +
+            `STYLES=&BBOX=${bbox}&FEATURE_COUNT=1&` +
+            `HEIGHT=${size.y}&WIDTH=${size.x}&FORMAT=image/png&` +
+            `INFO_FORMAT=application/json&SRS=EPSG:4326&` +
+            `X=${Math.round(point.x)}&Y=${Math.round(point.y)}`;
+        
+        const response = await fetch(url, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.features && data.features.length > 0) {
+                const clickedFeature = data.features[0];
+                highlightFeatureInTable(clickedFeature);
             }
-        } catch (error) {
-            console.error('Error getting feature info:', error);
         }
+    } catch (error) {
+        console.error('Error getting feature info for selection:', error);
     }
 });
 
-function showAttributes(feature, layerName) {
-    const panel = document.getElementById('attributes-panel');
-    const content = document.getElementById('attributes-content');
-    
-    // Show the panel
-    panel.style.display = 'flex';
-    attributesVisible = true;
-    
-    // Create feature info
-    const properties = feature.properties || {};
-    const layerDisplayName = layerName.includes(':') ? layerName.split(':')[1] : layerName;
-    
-    let html = `
-        <div class="feature-info">
-            <h4>Layer: ${layerDisplayName}</h4>
-        </div>
-    `;
-    
-    if (Object.keys(properties).length > 0) {
-        html += `
-            <table class="attributes-table">
-                <thead>
-                    <tr>
-                        <th>Attribute</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        
-        for (const [key, value] of Object.entries(properties)) {
-            html += `
-                <tr>
-                    <td>${key}</td>
-                    <td>${value !== null && value !== undefined ? value : 'N/A'}</td>
-                </tr>
-            `;
-        }
-        
-        html += `
-                </tbody>
-            </table>
-        `;
-    } else {
-        html += '<div id="no-selection">No attributes available for this feature</div>';
+function highlightFeatureInTable(feature) {
+    if (!currentLayerData || !feature.properties) {
+        return;
     }
     
-    content.innerHTML = html;
-}
-
-function hideAttributes() {
-    const panel = document.getElementById('attributes-panel');
-    panel.style.display = 'none';
-    attributesVisible = false;
+    // Find the matching feature in the current layer data
+    const matchingFeatureIndex = currentLayerData.features.findIndex(f => {
+        if (!f.properties) return false;
+        
+        // Compare all properties to find exact match
+        const clickedProps = feature.properties;
+        const tableProps = f.properties;
+        
+        // Try to find exact property matches
+        let matchingProps = 0;
+        let totalProps = 0;
+        
+        for (const key in clickedProps) {
+            totalProps++;
+            if (key in tableProps && clickedProps[key] === tableProps[key]) {
+                matchingProps++;
+            }
+        }
+        
+        // Consider it a match if at least 70% of properties match and we have at least 2 matches
+        const matchRatio = totalProps > 0 ? matchingProps / totalProps : 0;
+        return matchingProps >= 2 && matchRatio >= 0.7;
+    });
+    
+    if (matchingFeatureIndex !== -1) {
+        // Re-render the table with the selected feature at the top
+        displayLayerAttributesTable(currentLayerData, currentLayerName, matchingFeatureIndex);
+    }
 }
 
 // Show layer attributes table
@@ -296,6 +279,7 @@ async function showLayerAttributes(layerName) {
     // Show the panel
     panel.style.display = 'flex';
     layerAttributesVisible = true;
+    currentLayerName = layerName;
     
     // Show loading message
     content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading layer attributes...</div>';
@@ -313,6 +297,7 @@ async function showLayerAttributes(layerName) {
         
         if (response.ok) {
             const data = await response.json();
+            currentLayerData = data;
             displayLayerAttributesTable(data, layerName);
         } else {
             content.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">Error loading layer attributes</div>';
@@ -323,7 +308,7 @@ async function showLayerAttributes(layerName) {
     }
 }
 
-function displayLayerAttributesTable(data, layerName) {
+function displayLayerAttributesTable(data, layerName, selectedFeatureIndex = -1) {
     const content = document.getElementById('layer-attributes-content');
     const layerDisplayName = layerName.includes(':') ? layerName.split(':')[1] : layerName;
     
@@ -355,6 +340,13 @@ function displayLayerAttributesTable(data, layerName) {
             </div>
         `;
         return;
+    }
+    
+    // Reorder features if a selected feature is specified
+    let featuresInOrder = [...data.features];
+    if (selectedFeatureIndex >= 0 && selectedFeatureIndex < featuresInOrder.length) {
+        const selectedFeature = featuresInOrder.splice(selectedFeatureIndex, 1)[0];
+        featuresInOrder.unshift(selectedFeature);
     }
     
     // Calculate column width based on number of attributes
@@ -389,9 +381,14 @@ function displayLayerAttributesTable(data, layerName) {
     `;
     
     // Add data rows
-    data.features.forEach((feature, index) => {
-        html += `<tr>`;
-        html += `<td style="font-weight: bold; background: #f8f9fa;">${index + 1}</td>`;
+    featuresInOrder.forEach((feature, index) => {
+        const isSelected = selectedFeatureIndex >= 0 && index === 0; // Selected feature is now first
+        const originalIndex = selectedFeatureIndex >= 0 && index === 0 ? 
+            selectedFeatureIndex + 1 : 
+            (selectedFeatureIndex >= 0 && index <= selectedFeatureIndex ? index : index + 1);
+        
+        html += `<tr${isSelected ? ' class="selected"' : ''}>`;
+        html += `<td style="font-weight: bold; background: ${isSelected ? 'rgba(255,255,255,0.2)' : '#f8f9fa'};">${originalIndex}</td>`;
         
         attributeNames.forEach(attr => {
             const value = feature.properties && feature.properties[attr];
@@ -415,6 +412,8 @@ function hideLayerAttributes() {
     const panel = document.getElementById('layer-attributes-panel');
     panel.style.display = 'none';
     layerAttributesVisible = false;
+    currentLayerData = null;
+    currentLayerName = null;
 }
 
 // Zoom to layer function
@@ -482,9 +481,9 @@ document.getElementById('active-first-toggle').onchange = (e) => {
     displayLayers(filtered);
 };
 
-// Close attributes panel
-document.getElementById('close-attributes').onclick = () => {
-    hideAttributes();
+// Selected First toggle functionality
+document.getElementById('selected-first-toggle').onchange = (e) => {
+    selectedFirstEnabled = e.target.checked;
 };
 
 // Close layer attributes panel
