@@ -225,6 +225,21 @@ h1 {
     gap: 15px;
 }
 
+#attribute-search {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    min-width: 180px;
+    background: white;
+}
+
+#attribute-search:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+}
+
 #layer-attributes-header h3 {
     margin: 0;
     font-size: 16px;

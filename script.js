@@ -13,6 +13,8 @@ let layerAttributesVisible = false;
 let selectedFirstEnabled = false;
 let currentLayerData = null;
 let currentLayerName = null;
+let currentSearchTerm = '';
+let selectedFeatureIndex = -1;
 
 // Load and display layers
 async function loadLayers() {
@@ -275,11 +277,18 @@ function highlightFeatureInTable(feature) {
 async function showLayerAttributes(layerName) {
     const panel = document.getElementById('layer-attributes-panel');
     const content = document.getElementById('layer-attributes-content');
+    const searchInput = document.getElementById('attribute-search');
     
-    // Show the panel
+    // Show the panel and search input
     panel.style.display = 'flex';
+    searchInput.style.display = 'block';
     layerAttributesVisible = true;
     currentLayerName = layerName;
+    
+    // Clear previous search
+    currentSearchTerm = '';
+    searchInput.value = '';
+    selectedFeatureIndex = -1;
     
     // Show loading message
     content.innerHTML = '<div style="text-align: center; padding: 20px;">Loading layer attributes...</div>';
@@ -308,7 +317,7 @@ async function showLayerAttributes(layerName) {
     }
 }
 
-function displayLayerAttributesTable(data, layerName, selectedFeatureIndex = -1) {
+function displayLayerAttributesTable(data, layerName, selectedFeatureIdx = -1) {
     const content = document.getElementById('layer-attributes-content');
     const layerDisplayName = layerName.includes(':') ? layerName.split(':')[1] : layerName;
     
@@ -321,6 +330,9 @@ function displayLayerAttributesTable(data, layerName, selectedFeatureIndex = -1)
         `;
         return;
     }
+    
+    // Store the selected feature index
+    selectedFeatureIndex = selectedFeatureIdx;
     
     // Get all unique attribute names from all features
     const allAttributes = new Set();
@@ -342,11 +354,34 @@ function displayLayerAttributesTable(data, layerName, selectedFeatureIndex = -1)
         return;
     }
     
-    // Reorder features if a selected feature is specified
-    let featuresInOrder = [...data.features];
-    if (selectedFeatureIndex >= 0 && selectedFeatureIndex < featuresInOrder.length) {
-        const selectedFeature = featuresInOrder.splice(selectedFeatureIndex, 1)[0];
-        featuresInOrder.unshift(selectedFeature);
+    // Filter features based on search term
+    let filteredFeatures = data.features;
+    if (currentSearchTerm) {
+        const searchLower = currentSearchTerm.toLowerCase();
+        filteredFeatures = data.features.filter(feature => {
+            if (!feature.properties) return false;
+            
+            // Search in all property values
+            return Object.values(feature.properties).some(value => {
+                if (value === null || value === undefined) return false;
+                return String(value).toLowerCase().includes(searchLower);
+            });
+        });
+    }
+    
+    // Reorder features if a selected feature is specified and it exists in filtered results
+    let featuresInOrder = [...filteredFeatures];
+    let actualSelectedIndex = -1;
+    
+    if (selectedFeatureIndex >= 0 && selectedFeatureIndex < data.features.length) {
+        const selectedFeature = data.features[selectedFeatureIndex];
+        const indexInFiltered = filteredFeatures.findIndex(f => f === selectedFeature);
+        
+        if (indexInFiltered >= 0) {
+            actualSelectedIndex = 0; // Will be first after reordering
+            featuresInOrder.splice(indexInFiltered, 1);
+            featuresInOrder.unshift(selectedFeature);
+        }
     }
     
     // Calculate column width based on number of attributes
@@ -358,9 +393,13 @@ function displayLayerAttributesTable(data, layerName, selectedFeatureIndex = -1)
     const columnWidth = Math.max(minColumnWidth, availableWidth / attributeNames.length);
     
     // Create the table
+    const totalFeatures = data.features.length;
+    const filteredCount = filteredFeatures.length;
+    const searchInfo = currentSearchTerm ? ` (${filteredCount} of ${totalFeatures} features shown)` : ` (${totalFeatures} features)`;
+    
     let html = `
         <div class="feature-info">
-            <h4>Layer: ${layerDisplayName} (${data.features.length} features)</h4>
+            <h4>Layer: ${layerDisplayName}${searchInfo}</h4>
         </div>
         <div class="layer-attributes-table-container">
             <table class="layer-attributes-table" style="min-width: ${Math.min(maxTableWidth, (columnWidth * attributeNames.length) + rowColumnWidth)}px;">
@@ -381,11 +420,9 @@ function displayLayerAttributesTable(data, layerName, selectedFeatureIndex = -1)
     `;
     
     // Add data rows
-    featuresInOrder.forEach((feature, index) => {
-        const isSelected = selectedFeatureIndex >= 0 && index === 0; // Selected feature is now first
-        const originalIndex = selectedFeatureIndex >= 0 && index === 0 ? 
-            selectedFeatureIndex + 1 : 
-            (selectedFeatureIndex >= 0 && index <= selectedFeatureIndex ? index : index + 1);
+    featuresInOrder.forEach((feature, displayIndex) => {
+        const isSelected = actualSelectedIndex === displayIndex;
+        const originalIndex = data.features.indexOf(feature) + 1;
         
         html += `<tr${isSelected ? ' class="selected"' : ''}>`;
         html += `<td style="font-weight: bold; background: ${isSelected ? 'rgba(255,255,255,0.2)' : '#f8f9fa'};">${originalIndex}</td>`;
@@ -410,10 +447,17 @@ function displayLayerAttributesTable(data, layerName, selectedFeatureIndex = -1)
 
 function hideLayerAttributes() {
     const panel = document.getElementById('layer-attributes-panel');
+    const searchInput = document.getElementById('attribute-search');
+    
     panel.style.display = 'none';
+    searchInput.style.display = 'none';
+    
     layerAttributesVisible = false;
     currentLayerData = null;
     currentLayerName = null;
+    currentSearchTerm = '';
+    selectedFeatureIndex = -1;
+    searchInput.value = '';
 }
 
 // Zoom to layer function
@@ -488,6 +532,21 @@ document.getElementById('selected-first-toggle').onchange = (e) => {
     // If toggling off and we have current layer data, restore original order
     if (!selectedFirstEnabled && currentLayerData && currentLayerName) {
         displayLayerAttributesTable(currentLayerData, currentLayerName);
+    }
+};
+
+// Attribute search functionality
+document.getElementById('attribute-search').oninput = (e) => {
+    currentSearchTerm = e.target.value.trim();
+    
+    if (currentLayerData && currentLayerName) {
+        // Preserve selected feature if "Selected First" is enabled and we have one
+        const preserveSelection = selectedFirstEnabled && selectedFeatureIndex >= 0;
+        displayLayerAttributesTable(
+            currentLayerData, 
+            currentLayerName, 
+            preserveSelection ? selectedFeatureIndex : -1
+        );
     }
 };
 
