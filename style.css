@@ -1,15 +1,50 @@
+:root {
+    --primary-color: #007cba;
+    --primary-color-dark: #005a8a;
+    --secondary-color: #28a745;
+    --secondary-color-dark: #1e7e34;
+    --background-color: #f5f5f5;
+    --surface-color: #ffffff;
+    --text-color: #333;
+    --text-color-light: #666;
+    --border-color: #ddd;
+    --border-color-light: #eee;
+    --header-bg: #333;
+    --header-text: #ffffff;
+    --panel-header-bg: #e0e0e0;
+    --hover-bg: #e8e8e8;
+    --active-bg: var(--primary-color);
+    --active-text: #ffffff;
+    --selected-bg: var(--primary-color);
+    --selected-text: #ffffff;
+
+    --font-family: Arial, sans-serif;
+    --font-size-base: 14px;
+    --font-size-small: 12px;
+    --font-size-large: 16px;
+    --font-size-xl: 18px;
+    --font-size-title: 20px;
+
+    --border-radius: 4px;
+    --spacing-small: 4px;
+    --spacing-medium: 8px;
+    --spacing-large: 15px;
+    --box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: var(--font-family);
+    color: var(--text-color);
 }
 
 h1 {
-    background: #333;
-    color: white;
-    padding: 15px;
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: var(--spacing-large);
     text-align: center;
     margin: 0;
-    font-size: 20px;
+    font-size: var(--font-size-title);
 }
 
 .container {
@@ -19,47 +54,47 @@ h1 {
 
 #layers-panel {
     width: 320px;
-    background: #f5f5f5;
-    border-right: 1px solid #ddd;
-    padding: 15px;
+    background: var(--background-color);
+    border-right: 1px solid var(--border-color);
+    padding: var(--spacing-large);
     overflow-y: auto;
 }
 
 #layers-panel h3 {
-    margin: 0 0 15px 0;
-    font-size: 18px;
+    margin: 0 0 var(--spacing-large) 0;
+    font-size: var(--font-size-xl);
 }
 
 #search-bar {
     width: 100%;
-    padding: 8px;
-    margin-bottom: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: var(--spacing-medium);
+    margin-bottom: var(--spacing-medium);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: var(--font-size-base);
 }
 
 #sort-select {
     width: 100%;
-    padding: 8px;
-    margin-bottom: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: var(--spacing-medium);
+    margin-bottom: var(--spacing-medium);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     box-sizing: border-box;
-    font-size: 14px;
-    background: white;
+    font-size: var(--font-size-base);
+    background: var(--surface-color);
 }
 
 .sort-options {
-    margin-bottom: 15px;
+    margin-bottom: var(--spacing-large);
 }
 
 .toggle-label {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
+    gap: var(--spacing-medium);
+    font-size: var(--font-size-base);
     cursor: pointer;
 }
 
@@ -72,21 +107,21 @@ h1 {
 #layers-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--spacing-small);
 }
 
 .workspace-header {
-    background: #e0e0e0;
-    border: 1px solid #ccc;
+    background: var(--panel-header-bg);
+    border: 1px solid var(--border-color);
     padding: 10px 12px;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--font-size-base);
     font-weight: bold;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 8px;
+    gap: var(--spacing-medium);
+    margin-top: var(--spacing-medium);
 }
 
 .workspace-header:hover {
@@ -94,7 +129,7 @@ h1 {
 }
 
 .workspace-toggle {
-    font-size: 12px;
+    font-size: var(--font-size-small);
     transition: transform 0.2s;
 }
 
@@ -105,30 +140,30 @@ h1 {
 .workspace-content {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-left: 15px;
-    margin-bottom: 8px;
+    gap: var(--spacing-small);
+    margin-left: var(--spacing-large);
+    margin-bottom: var(--spacing-medium);
 }
 
 .layer-item {
-    background: #fff;
-    border: 1px solid #ccc;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     padding: 10px 12px;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--font-size-base);
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
 .layer-item:hover {
-    background: #e8e8e8;
+    background: var(--hover-bg);
 }
 
 .layer-item.active {
-    background: #007cba;
-    color: white;
+    background: var(--active-bg);
+    color: var(--active-text);
 }
 
 .layer-checkbox {
@@ -144,13 +179,13 @@ h1 {
 
 .zoom-btn,
 .table-btn {
-    background: #007cba;
-    color: white;
+    background: var(--primary-color);
+    color: var(--active-text);
     border: none;
     border-radius: 3px;
     width: 24px;
     height: 24px;
-    font-size: 12px;
+    font-size: var(--font-size-small);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -160,22 +195,22 @@ h1 {
 
 .zoom-btn:hover,
 .table-btn:hover {
-    background: #005a8a;
+    background: var(--primary-color-dark);
 }
 
 .table-btn {
-    background: #28a745;
-    margin-left: 4px;
+    background: var(--secondary-color);
+    margin-left: var(--spacing-small);
 }
 
 .table-btn:hover {
-    background: #1e7e34;
+    background: var(--secondary-color-dark);
 }
 
 .layer-item.active .zoom-btn,
 .layer-item.active .table-btn {
     background: rgba(255, 255, 255, 0.2);
-    color: white;
+    color: var(--active-text);
 }
 
 .layer-item.active .zoom-btn:hover {
@@ -201,8 +236,8 @@ h1 {
 
 #layer-attributes-panel {
     height: 35%;
-    background: #f9f9f9;
-    border-top: 2px solid #ddd;
+    background: var(--background-color);
+    border-top: 2px solid var(--border-color);
     display: flex;
     flex-direction: column;
     display: none;
@@ -212,9 +247,9 @@ h1 {
 }
 
 #layer-attributes-header {
-    background: #e0e0e0;
-    padding: 10px 15px;
-    border-bottom: 1px solid #ccc;
+    background: var(--panel-header-bg);
+    padding: 10px var(--spacing-large);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -223,33 +258,33 @@ h1 {
 #layer-attributes-controls {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: var(--spacing-large);
 }
 
 #attribute-search {
     padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     font-size: 13px;
     min-width: 180px;
-    background: white;
+    background: var(--surface-color);
 }
 
 #attribute-search:focus {
     outline: none;
-    border-color: #007cba;
+    border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
 }
 
 #layer-attributes-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--font-size-large);
 }
 
 #close-layer-attributes {
     background: none;
     border: none;
-    font-size: 18px;
+    font-size: var(--font-size-xl);
     cursor: pointer;
     padding: 0;
     width: 24px;
@@ -266,9 +301,9 @@ h1 {
 
 #layer-attributes-content {
     flex: 1;
-    padding: 15px;
+    padding: var(--spacing-large);
     overflow: hidden;
-    background: #f9f9f9;
+    background: var(--background-color);
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -278,16 +313,16 @@ h1 {
 .layer-attributes-table-container {
     overflow: auto;
     flex: 1;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--surface-color);
     width: 100%;
     max-width: 100%;
     min-height: 0;
 }
 
 #no-layer-selection {
-    color: #666;
+    color: var(--text-color-light);
     font-style: italic;
     text-align: center;
     margin-top: 50px;
@@ -296,11 +331,11 @@ h1 {
 .layer-attributes-table {
     width: 100%;
     border-collapse: collapse;
-    background: white;
-    border-radius: 4px;
+    background: var(--surface-color);
+    border-radius: var(--border-radius);
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    font-size: 12px;
+    box-shadow: var(--box-shadow);
+    font-size: var(--font-size-small);
     table-layout: fixed;
     min-width: 800px;
 }
@@ -314,8 +349,8 @@ h1 {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    border-right: 1px solid #eee;
-    border-bottom: 1px solid #eee;
+    border-right: 1px solid var(--border-color-light);
+    border-bottom: 1px solid var(--border-color-light);
 }
 
 .layer-attributes-table th:first-child,
@@ -326,18 +361,18 @@ h1 {
 }
 
 .layer-attributes-table th {
-    background: #f5f5f5;
+    background: var(--background-color);
     font-weight: bold;
-    font-size: 12px;
+    font-size: var(--font-size-small);
     text-transform: uppercase;
-    color: #666;
+    color: var(--text-color-light);
     position: sticky;
     top: 0;
     z-index: 1;
 }
 
 .layer-attributes-table td {
-    font-size: 12px;
+    font-size: var(--font-size-small);
 }
 
 .layer-attributes-table tr:last-child td {
@@ -345,12 +380,12 @@ h1 {
 }
 
 .layer-attributes-table tr:hover {
-    background: #f9f9f9;
+    background: var(--hover-bg);
 }
 
 .layer-attributes-table tr.selected {
-    background: #007cba !important;
-    color: white;
+    background: var(--selected-bg) !important;
+    color: var(--selected-text);
 }
 
 .layer-attributes-table tr.selected td {
@@ -364,15 +399,15 @@ h1 {
 }
 
 .feature-info {
-    background: white;
+    background: var(--surface-color);
     padding: 12px;
-    margin-bottom: 15px;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: var(--spacing-large);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
 }
 
 .feature-info h4 {
-    margin: 0 0 8px 0;
-    color: #007cba;
-    font-size: 14px;
+    margin: 0 0 var(--spacing-medium) 0;
+    color: var(--primary-color);
+    font-size: var(--font-size-base);
 }
