@@ -484,6 +484,11 @@ document.getElementById('active-first-toggle').onchange = (e) => {
 // Selected First toggle functionality
 document.getElementById('selected-first-toggle').onchange = (e) => {
     selectedFirstEnabled = e.target.checked;
+    
+    // If toggling off and we have current layer data, restore original order
+    if (!selectedFirstEnabled && currentLayerData && currentLayerName) {
+        displayLayerAttributesTable(currentLayerData, currentLayerName);
+    }
 };
 
 // Close layer attributes panel
