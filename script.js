@@ -232,10 +232,13 @@ async function getPopupConfig(layerName) {
         
         if (!dataLinks) return null;
         
+        // Handle both single object and array formats
+        const dataLinksArray = getDataLinksArray(dataLinks);
+        
         // Look for retigis.popup entry
-        for (const [key, value] of Object.entries(dataLinks)) {
-            if (value && value.content === 'retigis.popup') {
-                const type = value.type || '';
+        for (const dataLink of dataLinksArray) {
+            if (dataLink && dataLink.content === 'retigis.popup') {
+                const type = dataLink.type || '';
                 if (type.startsWith('config:')) {
                     const attributes = type.substring(7).split(',').filter(attr => attr.trim());
                     return attributes;
@@ -247,6 +250,53 @@ async function getPopupConfig(layerName) {
     } catch (error) {
         console.error('Error getting popup config:', error);
         return null;
+    }
+}
+
+// Helper function to handle both single and array data link formats
+function getDataLinksArray(dataLinks) {
+    if (!dataLinks) return [];
+    
+    const impl = dataLinks['org.geoserver.catalog.impl.DataLinkInfoImpl'];
+    if (!impl) return [];
+    
+    // If it's already an array, return it
+    if (Array.isArray(impl)) {
+        return impl;
+    }
+    
+    // If it's a single object, wrap it in an array
+    return [impl];
+}
+
+// Helper function to reconstruct dataLinks structure preserving existing entries
+function reconstructDataLinks(existingDataLinks, popupConfig) {
+    if (!existingDataLinks) {
+        // No existing data links, create new structure with just popup config
+        return {
+            'org.geoserver.catalog.impl.DataLinkInfoImpl': popupConfig
+        };
+    }
+    
+    const existingArray = getDataLinksArray(existingDataLinks);
+    
+    // Filter out any existing retigis.popup entries
+    const nonPopupEntries = existingArray.filter(dataLink => 
+        !dataLink || dataLink.content !== 'retigis.popup'
+    );
+    
+    // Add the new popup config
+    const allEntries = [...nonPopupEntries, popupConfig];
+    
+    // Return appropriate structure based on final count
+    if (allEntries.length === 1) {
+        return {
+            'org.geoserver.catalog.impl.DataLinkInfoImpl': allEntries[0]
+        };
+    } else {
+        return {
+            'org.geoserver.catalog.impl.DataLinkInfoImpl': allEntries
+        };
     }
 }
 
@@ -270,22 +320,17 @@ async function savePopupConfig(layerName, selectedAttributes) {
         // Create config string
         const configString = `config:${selectedAttributes.join(',')}`;
         
-        // Prepare data links - preserve existing non-popup entries
-        const existingDataLinks = featureTypeData.featureType.dataLinks || {};
-        const newDataLinks = {};
-        
-        // Copy non-popup entries
-        for (const [key, value] of Object.entries(existingDataLinks)) {
-            if (!value || value.content !== 'retigis.popup') {
-                newDataLinks[key] = value;
-            }
-        }
-        
-        // Add popup config
-        newDataLinks['org.geoserver.catalog.impl.DataLinkInfoImpl'] = {
+        // Create popup config entry
+        const popupConfig = {
             type: configString,
             content: 'retigis.popup'
         };
+        
+        // Reconstruct data links preserving existing entries
+        const newDataLinks = reconstructDataLinks(
+            featureTypeData.featureType.dataLinks, 
+            popupConfig
+        );
         
         // Create minimal update payload
         const updatePayload = {
@@ -297,6 +342,8 @@ async function savePopupConfig(layerName, selectedAttributes) {
                 dataLinks: newDataLinks
             }
         };
+        
+        console.log('Saving popup config with preserved data links:', JSON.stringify(newDataLinks, null, 2));
         
         const updateResponse = await fetch(layerData.layer.resource.href, {
             method: 'PUT',
