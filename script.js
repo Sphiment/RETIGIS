@@ -452,13 +452,13 @@ async function showFeaturePopup(latlng, clickedLayers) {
         const configuredAttributes = await getPopupConfig(layerName);
         
         popupContent += `<div style="margin-bottom: 15px;">`;
-        popupContent += `<h4 style="margin: 0 0 8px 0; color: #2c3e50; border-bottom: 1px solid #ecf0f1; padding-bottom: 4px;">${displayName}</h4>`;
+        popupContent += `<h4>${displayName}</h4>`;
         
         if (!feature.properties) {
             popupContent += `<p style="margin: 0; font-style: italic; color: #7f8c8d;">No attributes available</p>`;
         } else if (!configuredAttributes || configuredAttributes.length === 0) {
             popupContent += `<p style="margin: 0; font-style: italic; color: #7f8c8d;">No attributes configured for popup</p>`;
-            popupContent += `<button onclick="openPopupConfig('${layerName}')" style="margin-top: 5px; padding: 3px 8px; font-size: 11px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">Configure</button>`;
+            popupContent += `<button class="btn btn-sm btn-primary" onclick="openPopupConfig('${layerName}')">Configure</button>`;
         } else {
             // Show only configured attributes
             let hasValidAttributes = false;
@@ -475,7 +475,7 @@ async function showFeaturePopup(latlng, clickedLayers) {
                 popupContent += `<p style="margin: 0; font-style: italic; color: #7f8c8d;">Configured attributes not found</p>`;
             }
             
-            popupContent += `<button onclick="openPopupConfig('${layerName}')" style="margin-top: 5px; padding: 3px 8px; font-size: 11px; background: #95a5a6; color: white; border: none; border-radius: 3px; cursor: pointer;">Edit Config</button>`;
+            popupContent += `<button class="btn btn-sm btn-neutral" onclick="openPopupConfig('${layerName}')">Edit Config</button>`;
         }
         
         popupContent += `</div>`;
@@ -513,33 +513,18 @@ async function showPopupConfigPanel(layerName) {
     // Create configuration panel
     const panel = document.createElement('div');
     panel.id = 'popup-config-panel';
-    panel.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        border: 2px solid #34495e;
-        border-radius: 8px;
-        padding: 20px;
-        min-width: 350px;
-        max-height: 70vh;
-        overflow-y: auto;
-        z-index: 2000;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    `;
     
     let html = `
-        <h3 style="margin: 0 0 15px 0; color: #2c3e50;">Configure Popup for ${displayName}</h3>
-        <p style="margin: 0 0 15px 0; color: #7f8c8d; font-size: 14px;">Select which attributes to show when clicking on features:</p>
-        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ecf0f1; border-radius: 4px; padding: 10px;">
+        <h3>Configure Popup for ${displayName}</h3>
+        <p class="popup-config-desc">Select which attributes to show when clicking on features:</p>
+        <div class="popup-config-list">
     `;
     
     allAttributes.forEach(attr => {
         const isChecked = currentConfig.includes(attr);
         html += `
-            <label style="display: block; margin: 5px 0; cursor: pointer;">
-                <input type="checkbox" value="${attr}" ${isChecked ? 'checked' : ''} style="margin-right: 8px;">
+            <label>
+                <input type="checkbox" value="${attr}" ${isChecked ? 'checked' : ''}>
                 ${attr}
             </label>
         `;
@@ -547,9 +532,9 @@ async function showPopupConfigPanel(layerName) {
     
     html += `
         </div>
-        <div style="margin-top: 15px; text-align: right;">
-            <button id="cancel-config-btn" style="margin-right: 10px; padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
-            <button id="save-config-btn" style="padding: 8px 15px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Save Configuration</button>
+        <div class="popup-config-actions">
+            <button id="cancel-config-btn" class="btn btn-neutral">Cancel</button>
+            <button id="save-config-btn" class="btn btn-secondary">Save Configuration</button>
         </div>
     `;
     
@@ -559,15 +544,6 @@ async function showPopupConfigPanel(layerName) {
     // Add overlay
     const overlay = document.createElement('div');
     overlay.id = 'popup-config-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 1999;
-    `;
     document.body.appendChild(overlay);
     
     // Event handlers
@@ -578,9 +554,9 @@ async function showPopupConfigPanel(layerName) {
         const checkboxes = panel.querySelectorAll('input[type="checkbox"]:checked');
         const selectedAttributes = Array.from(checkboxes).map(cb => cb.value);
         
-        const saveBtn = document.getElementById('save-config-btn');
-        saveBtn.textContent = 'Saving...';
-        saveBtn.disabled = true;
+    const saveBtn = document.getElementById('save-config-btn');
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
         
         const success = await savePopupConfig(layerName, selectedAttributes);
         

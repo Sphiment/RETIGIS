@@ -3,6 +3,8 @@
     --primary-color-dark: #005a8a;
     --secondary-color: #28a745;
     --secondary-color-dark: #1e7e34;
+    --neutral-color: #6c757d;
+    --neutral-color-dark: #5a6268;
     --background-color: #f5f5f5;
     --surface-color: #ffffff;
     --text-color: #333;
@@ -11,12 +13,14 @@
     --border-color-light: #eee;
     --header-bg: #333;
     --header-text: #ffffff;
-    --panel-header-bg: #e0e0e0;
+    --panel-header-bg: #e9ecef;
     --hover-bg: #e8e8e8;
     --active-bg: var(--primary-color);
     --active-text: #ffffff;
     --selected-bg: var(--primary-color);
     --selected-text: #ffffff;
+    --overlay-bg: rgba(0,0,0,0.5);
+    --focus-ring: 0 0 0 2px rgba(0,124,186,0.2);
 
     --font-family: Arial, sans-serif;
     --font-size-base: 14px;
@@ -73,6 +77,7 @@ h1 {
     border-radius: var(--border-radius);
     box-sizing: border-box;
     font-size: var(--font-size-base);
+    background: var(--surface-color);
 }
 
 #sort-select {
@@ -125,7 +130,7 @@ h1 {
 }
 
 .workspace-header:hover {
-    background: #d0d0d0;
+    background: #dde3e7;
 }
 
 .workspace-toggle {
@@ -177,22 +182,75 @@ h1 {
     flex: 1;
 }
 
+
+/* Buttons - unified styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    line-height: 1;
+    border-radius: var(--border-radius);
+    border: 1px solid transparent;
+    cursor: pointer;
+    padding: 8px 12px;
+    color: #fff;
+    transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.btn:focus {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+.btn-sm {
+    padding: 6px 10px;
+    font-size: var(--font-size-small);
+}
+.btn-icon {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+}
+.btn-primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.btn-primary:hover { background: var(--primary-color-dark); }
+.btn-secondary {
+    background: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+.btn-secondary:hover { background: var(--secondary-color-dark); }
+.btn-neutral {
+    background: var(--neutral-color);
+    border-color: var(--neutral-color);
+}
+.btn-neutral:hover { background: var(--neutral-color-dark); }
+
+/* Icon buttons used in layer list */
 .zoom-btn,
 .table-btn,
 .config-btn {
-    background: var(--primary-color);
     color: var(--active-text);
     border: none;
-    border-radius: 3px;
-    width: 24px;
-    height: 24px;
+    border-radius: var(--border-radius);
+    width: 28px;
+    height: 28px;
     font-size: var(--font-size-small);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    transition: background 0.15s ease;
 }
+.zoom-btn { background: var(--primary-color); }
+.zoom-btn:hover { background: var(--primary-color-dark); }
+.table-btn { background: var(--secondary-color); margin-left: var(--spacing-small); }
+.table-btn:hover { background: var(--secondary-color-dark); }
+.config-btn { background: var(--neutral-color); margin-left: var(--spacing-small); }
+.config-btn:hover { background: var(--neutral-color-dark); }
 
 .zoom-btn:hover,
 .table-btn:hover,
@@ -289,7 +347,7 @@ h1 {
 #attribute-search:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+    box-shadow: var(--focus-ring);
 }
 
 #layer-attributes-header h3 {
@@ -312,7 +370,7 @@ h1 {
 }
 
 #close-layer-attributes:hover {
-    background: #ccc;
+    background: #d6d8db;
 }
 
 #layer-attributes-content {
@@ -377,11 +435,11 @@ h1 {
 }
 
 .layer-attributes-table th {
-    background: var(--background-color);
+    background: var(--panel-header-bg);
     font-weight: bold;
     font-size: var(--font-size-small);
     text-transform: uppercase;
-    color: var(--text-color-light);
+    color: var(--text-color);
     position: sticky;
     top: 0;
     z-index: 1;
@@ -443,8 +501,8 @@ h1 {
 
 .feature-popup h4 {
     margin: 0 0 8px 0;
-    color: #2c3e50;
-    border-bottom: 1px solid #ecf0f1;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color-light);
     padding-bottom: 4px;
     font-size: var(--font-size-base);
 }
@@ -456,27 +514,17 @@ h1 {
 
 .feature-popup button {
     margin-top: 5px;
-    padding: 3px 8px;
     font-size: 11px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
 }
 
-.feature-popup button:hover {
-    background: #2980b9;
-}
-
-/* Configuration Panel Overlay */
+/* Config Panel Overlay & Panel */
 #popup-config-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: var(--overlay-bg);
     z-index: 1999;
 }
 
@@ -485,20 +533,20 @@ h1 {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: white;
-    border: 2px solid #34495e;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 20px;
-    min-width: 350px;
+    min-width: 360px;
     max-height: 70vh;
     overflow-y: auto;
     z-index: 2000;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
 #popup-config-panel h3 {
     margin: 0 0 15px 0;
-    color: #2c3e50;
+    color: var(--text-color);
     font-size: var(--font-size-large);
 }
 
@@ -513,3 +561,31 @@ h1 {
     margin-right: 8px;
     transform: scale(1.1);
 }
+
+.popup-config-desc {
+    margin: 0 0 15px 0;
+    color: var(--text-color-light);
+    font-size: var(--font-size-base);
+}
+.popup-config-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--border-radius);
+    padding: 10px;
+}
+.popup-config-actions {
+    margin-top: 15px;
+    text-align: right;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Inline status messages */
+.status-message {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-color);
+}
+.status-message.error { color: #dc3545; }
