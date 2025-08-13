@@ -19,7 +19,9 @@ let selectedFeatureIndex = -1;
 // Load and display layers
 async function loadLayers() {
     try {
-    const response = await restFetch('/layers.json');
+        const response = await fetch('http://localhost:8080/geoserver/rest/layers.json', {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         const data = await response.json();
         
         allLayers = data.layers.layer;
@@ -189,7 +191,7 @@ function toggleLayer(name, element, checkbox) {
         element.classList.remove('active');
         checkbox.checked = false;
     } else {
-    const layer = L.tileLayer.wms(CONFIG.WMS_URL, {
+        const layer = L.tileLayer.wms('http://localhost:8080/geoserver/wms', {
             layers: name,
             format: 'image/png',
             transparent: true
@@ -212,12 +214,16 @@ function toggleLayer(name, element, checkbox) {
 // Popup Configuration Management
 async function getPopupConfig(layerName) {
     try {
-    const response = await restFetch(`/layers/${layerName}.json`);
+        const response = await fetch(`http://localhost:8080/geoserver/rest/layers/${layerName}.json`, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         
         if (!response.ok) return null;
         
         const layerData = await response.json();
-    const resourceResponse = await restFetch(layerData.layer.resource.href);
+        const resourceResponse = await fetch(layerData.layer.resource.href, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         
         if (!resourceResponse.ok) return null;
         
@@ -296,12 +302,16 @@ function reconstructDataLinks(existingDataLinks, popupConfig) {
 
 async function savePopupConfig(layerName, selectedAttributes) {
     try {
-    const response = await restFetch(`/layers/${layerName}.json`);
+        const response = await fetch(`http://localhost:8080/geoserver/rest/layers/${layerName}.json`, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         
         if (!response.ok) return false;
         
         const layerData = await response.json();
-    const resourceResponse = await restFetch(layerData.layer.resource.href);
+        const resourceResponse = await fetch(layerData.layer.resource.href, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         
         if (!resourceResponse.ok) return false;
         
@@ -335,9 +345,12 @@ async function savePopupConfig(layerName, selectedAttributes) {
         
         console.log('Saving popup config with preserved data links:', JSON.stringify(newDataLinks, null, 2));
         
-        const updateResponse = await restFetch(layerData.layer.resource.href, {
+        const updateResponse = await fetch(layerData.layer.resource.href, {
             method: 'PUT',
-            headers: buildAuthHeader({'Content-Type': 'application/json'}),
+            headers: {
+                'Authorization': `Basic ${btoa('admin:geoserver')}`,
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(updatePayload)
         });
         
@@ -350,12 +363,16 @@ async function savePopupConfig(layerName, selectedAttributes) {
 
 async function getLayerAttributes(layerName) {
     try {
-    const response = await restFetch(`/layers/${layerName}.json`);
+        const response = await fetch(`http://localhost:8080/geoserver/rest/layers/${layerName}.json`, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         
         if (!response.ok) return [];
         
         const layerData = await response.json();
-    const resourceResponse = await restFetch(layerData.layer.resource.href);
+        const resourceResponse = await fetch(layerData.layer.resource.href, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         
         if (!resourceResponse.ok) return [];
         
@@ -384,7 +401,7 @@ map.on('click', async function(e) {
             const size = map.getSize();
             const bbox = map.getBounds().toBBoxString();
             
-            const url = `${CONFIG.WMS_URL}?` +
+            const url = `http://localhost:8080/geoserver/wms?` +
                 `SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&` +
                 `LAYERS=${layerName}&QUERY_LAYERS=${layerName}&` +
                 `STYLES=&BBOX=${bbox}&FEATURE_COUNT=1&` +
@@ -392,7 +409,9 @@ map.on('click', async function(e) {
                 `INFO_FORMAT=application/json&SRS=EPSG:4326&` +
                 `X=${Math.round(point.x)}&Y=${Math.round(point.y)}`;
             
-            const response = await fetch(url, { headers: buildAuthHeader() });
+            const response = await fetch(url, {
+                headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+            });
             
             if (response.ok) {
                 const data = await response.json();
@@ -617,12 +636,14 @@ async function showLayerAttributes(layerName) {
     
     try {
         // Get all features from the layer using WFS
-        const url = `${CONFIG.WFS_URL}?` +
+        const url = `http://localhost:8080/geoserver/wfs?` +
             `service=WFS&version=1.0.0&request=GetFeature&` +
             `typeName=${layerName}&outputFormat=application/json&` +
-            `maxFeatures=${CONFIG.MAX_FEATURES}`; // Limit for performance
+            `maxFeatures=1000`; // Limit to 1000 features for performance
         
-        const response = await fetch(url, { headers: buildAuthHeader() });
+        const response = await fetch(url, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         
         if (response.ok) {
             const data = await response.json();
@@ -783,14 +804,18 @@ function hideLayerAttributes() {
 // Zoom to layer function
 async function zoomToLayer(layerName) {
     try {
-    const response = await restFetch(`/layers/${layerName}.json`);
+        const response = await fetch(`http://localhost:8080/geoserver/rest/layers/${layerName}.json`, {
+            headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+        });
         
         if (response.ok) {
             const data = await response.json();
             const resourceHref = data.layer?.resource?.href;
             
             if (resourceHref) {
-                const resourceResponse = await restFetch(resourceHref);
+                const resourceResponse = await fetch(resourceHref, {
+                    headers: {'Authorization': `Basic ${btoa('admin:geoserver')}`}
+                });
                 
                 if (resourceResponse.ok) {
                     const resourceData = await resourceResponse.json();
