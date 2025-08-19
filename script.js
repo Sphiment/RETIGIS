@@ -19,7 +19,7 @@ let selectedFeatureIndex = -1;
 // Load and display layers
 async function loadLayers() {
     try {
-        const response = await fetch(`${CONFIG.REST_URL}/layers.json`);
+        const response = await authFetch(`${CONFIG.REST_URL}/layers.json`);
         const data = await response.json();
         
         allLayers = data.layers.layer;
@@ -212,12 +212,12 @@ function toggleLayer(name, element, checkbox) {
 // Popup Configuration Management
 async function getPopupConfig(layerName) {
     try {
-        const response = await fetch(`${CONFIG.REST_URL}/layers/${layerName}.json`);
+        const response = await authFetch(`${CONFIG.REST_URL}/layers/${layerName}.json`);
         
         if (!response.ok) return null;
         
         const layerData = await response.json();
-        const resourceResponse = await fetch(layerData.layer.resource.href.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE));
+        const resourceResponse = await authFetch(layerData.layer.resource.href.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE));
         
         if (!resourceResponse.ok) return null;
         
@@ -296,12 +296,12 @@ function reconstructDataLinks(existingDataLinks, popupConfig) {
 
 async function savePopupConfig(layerName, selectedAttributes) {
     try {
-        const response = await fetch(`${CONFIG.REST_URL}/layers/${layerName}.json`);
+        const response = await authFetch(`${CONFIG.REST_URL}/layers/${layerName}.json`);
         
         if (!response.ok) return false;
         
         const layerData = await response.json();
-        const resourceResponse = await fetch(layerData.layer.resource.href.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE));
+        const resourceResponse = await authFetch(layerData.layer.resource.href.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE));
         
         if (!resourceResponse.ok) return false;
         
@@ -335,7 +335,7 @@ async function savePopupConfig(layerName, selectedAttributes) {
         
         console.log('Saving popup config with preserved data links:', JSON.stringify(newDataLinks, null, 2));
         
-        const updateResponse = await fetch(layerData.layer.resource.href.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE), {
+        const updateResponse = await authFetch(layerData.layer.resource.href.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE), {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -352,12 +352,12 @@ async function savePopupConfig(layerName, selectedAttributes) {
 
 async function getLayerAttributes(layerName) {
     try {
-        const response = await fetch(`${CONFIG.REST_URL}/layers/${layerName}.json`);
+        const response = await authFetch(`${CONFIG.REST_URL}/layers/${layerName}.json`);
         
         if (!response.ok) return [];
         
         const layerData = await response.json();
-        const resourceResponse = await fetch(layerData.layer.resource.href.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE));
+        const resourceResponse = await authFetch(layerData.layer.resource.href.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE));
         
         if (!resourceResponse.ok) return [];
         
@@ -394,7 +394,7 @@ map.on('click', async function(e) {
                 `INFO_FORMAT=application/json&SRS=EPSG:4326&` +
                 `X=${Math.round(point.x)}&Y=${Math.round(point.y)}`;
             
-            const response = await fetch(url);
+            const response = await authFetch(url);
             
             if (response.ok) {
                 const data = await response.json();
@@ -624,7 +624,7 @@ async function showLayerAttributes(layerName) {
             `typeName=${layerName}&outputFormat=application/json&` +
             `maxFeatures=1000`; // Limit to 1000 features for performance
         
-        const response = await fetch(url);
+        const response = await authFetch(url);
         
         if (response.ok) {
             const data = await response.json();
@@ -785,14 +785,14 @@ function hideLayerAttributes() {
 // Zoom to layer function
 async function zoomToLayer(layerName) {
     try {
-        const response = await fetch(`${CONFIG.REST_URL}/layers/${layerName}.json`);
+        const response = await authFetch(`${CONFIG.REST_URL}/layers/${layerName}.json`);
         
         if (response.ok) {
             const data = await response.json();
             const resourceHref = data.layer?.resource?.href;
             
             if (resourceHref) {
-                const resourceResponse = await fetch(resourceHref.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE));
+                const resourceResponse = await authFetch(resourceHref.replace('http://localhost:8080/geoserver', CONFIG.GEOSERVER_BASE));
                 
                 if (resourceResponse.ok) {
                     const resourceData = await resourceResponse.json();
