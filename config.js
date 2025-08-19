@@ -1,6 +1,6 @@
 window.CONFIG = {
   // Change to 0 for local development, 1 for production
-  PRODUCTION_MODE: 0,
+  PRODUCTION_MODE: 1,
 
   // Base URL where your GeoServer is accessible (including protocol and path up to 'geoserver')
   // Examples: 
