@@ -1,9 +1,21 @@
-## RETIGIS - Configurable GIS Web App
+# RETIGIS - Real-Time Geographic Information System
 
-### Configuration
-Edit `config.js` to configure your environment and GeoServer connection.
+A modern, configurable web-based GIS application.
 
-### Quick Setup
+## Features
+
+- **Real-Time Data Visualization**: Display live geospatial data from GeoServer with WMS and WFS support
+- **Interactive Mapping**: Click on features to view detailed attribute information in customizable popups
+- **Layer Management**: Organize and toggle layers grouped by GeoServer workspaces
+- **Advanced Search & Filtering**: Search through layers and feature attributes with real-time filtering
+- **Attribute Tables**: View and search feature attributes in an interactive tabular format
+- **Popup Configuration**: Customize which attributes appear in feature popups for each layer
+- **Responsive Design**: Optimized interface that works seamlessly on desktop and mobile devices
+- **Secure Authentication**: Production-ready deployment with server-side authentication headers
+- **Workspace Organization**: Layers are automatically grouped by GeoServer workspaces for better organization
+
+
+## Quick Setup
 
 1. **For Local Development**:
    - Set `PRODUCTION_MODE: 0`
@@ -21,6 +33,15 @@ Edit `config.js` to configure your environment and GeoServer connection.
 - Local development credentials are visible in browser - use only for development
 - Production mode ensures credentials remain secure on the server side
 
-### TODO
-- sorting for attribute table
-- modern ui and animations
+## Roadmap / TODO
+
+- [ ] Add sorting functionality for attribute tables
+- [ ] Implement modern UI animations and transitions
+- [ ] Add support for additional coordinate reference systems
+- [ ] Implement real-time data updates via WebSocket
+- [ ] Add export functionality for attribute tables
+- [ ] Implement layer styling and symbology controls
+- [ ] Add support for vector tile layers
+- [ ] Create mobile-optimized interface improvements
+
+**RETIGIS** - Bringing real-time GIS capabilities to web applications with simplicity and security.
