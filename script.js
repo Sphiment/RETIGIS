@@ -1,5 +1,5 @@
 // Initialize the map
-const map = L.map('map').setView([51.505, -0.09], 13);
+const map = L.map('map').setView([37, 37], 13);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(map);
 
 
@@ -52,7 +52,7 @@ function displayLayers(layers) {
         const workspaceHeader = document.createElement('div');
         workspaceHeader.className = 'workspace-header';
         workspaceHeader.innerHTML = `
-            <span class="workspace-toggle">▼</span>
+            <span class="workspace-toggle"><i class="fa-solid fa-angle-down"></i></span>
             <span class="workspace-name">${workspace} (${workspaceLayers.length})</span>
         `;
         
@@ -64,7 +64,7 @@ function displayLayers(layers) {
         const isCollapsed = collapsedWorkspaces.has(workspace);
         if (isCollapsed) {
             workspaceContent.style.display = 'none';
-            workspaceHeader.querySelector('.workspace-toggle').textContent = '▶';
+            workspaceHeader.querySelector('.workspace-toggle').innerHTML = '<i class="fa-solid fa-angle-right"></i>';
         }
         
         // Add layers to workspace content
@@ -86,7 +86,7 @@ function displayLayers(layers) {
             
             const zoomBtn = document.createElement('button');
             zoomBtn.className = 'zoom-btn';
-            zoomBtn.innerHTML = '⌖';
+            zoomBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
             zoomBtn.title = 'Zoom to layer';
             zoomBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -95,7 +95,7 @@ function displayLayers(layers) {
             
             const tableBtn = document.createElement('button');
             tableBtn.className = 'table-btn';
-            tableBtn.innerHTML = '⊞';
+            tableBtn.innerHTML = '<i class="fa-solid fa-table"></i>';
             tableBtn.title = 'View layer attributes';
             tableBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -104,7 +104,7 @@ function displayLayers(layers) {
             
             const configBtn = document.createElement('button');
             configBtn.className = 'config-btn';
-            configBtn.innerHTML = '⚙';
+            configBtn.innerHTML = '<i class="fa-solid fa-gear"></i>';
             configBtn.title = 'Configure popup attributes';
             configBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -129,11 +129,11 @@ function displayLayers(layers) {
             const toggle = workspaceHeader.querySelector('.workspace-toggle');
             if (workspaceContent.style.display === 'none') {
                 workspaceContent.style.display = 'block';
-                toggle.textContent = '▼';
+                toggle.innerHTML = '<i class="fa-solid fa-angle-down"></i>';
                 collapsedWorkspaces.delete(workspace);
             } else {
                 workspaceContent.style.display = 'none';
-                toggle.textContent = '▶';
+                toggle.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
                 collapsedWorkspaces.add(workspace);
             }
         };
