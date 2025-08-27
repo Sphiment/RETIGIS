@@ -43,5 +43,3 @@ A modern, configurable web-based GIS application.
 - [ ] Implement layer styling and symbology controls
 - [ ] Add support for vector tile layers
 - [ ] Create mobile-optimized interface improvements
-
-**RETIGIS** - Bringing real-time GIS capabilities to web applications with simplicity and security.
